@@ -447,6 +447,101 @@
             color: var(--text-secondary);
         }
 
+        /* ── PROJECTS ── */
+        .project-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            transition: border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .project-card:hover {
+            border-color: var(--primary);
+        }
+
+        .project-name {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .project-name a {
+            color: var(--text);
+        }
+
+        .project-name a:hover {
+            color: var(--primary);
+        }
+
+        .project-desc {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .project-meta {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .project-lang {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .project-lang-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .project-license {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.15rem 0.5rem;
+            color: var(--accent);
+        }
+
+        .project-link {
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .project-link:hover {
+            color: var(--cyan);
+        }
+
+        .projects-loading {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .projects-error {
+            color: var(--error);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 2rem;
+        }
+
         /* ── MOBILE ── */
         @media (max-width: 768px) {
             .navbar-links {
@@ -523,6 +618,7 @@
                 <li><a href="#skills" onclick="document.querySelector('.navbar-links').classList.remove('active'); document.querySelector('.navbar-toggle').setAttribute('aria-expanded','false')">Competenze</a></li>
                 <li><a href="#services" onclick="document.querySelector('.navbar-links').classList.remove('active'); document.querySelector('.navbar-toggle').setAttribute('aria-expanded','false')">Servizi</a></li>
                 <li><a href="#collab" onclick="document.querySelector('.navbar-links').classList.remove('active'); document.querySelector('.navbar-toggle').setAttribute('aria-expanded','false')">Collaborazioni</a></li>
+                <li><a href="#projects" onclick="document.querySelector('.navbar-links').classList.remove('active'); document.querySelector('.navbar-toggle').setAttribute('aria-expanded','false')">Progetti</a></li>
                 <li><a href="#contact" onclick="document.querySelector('.navbar-links').classList.remove('active'); document.querySelector('.navbar-toggle').setAttribute('aria-expanded','false')">Contatti</a></li>
             </ul>
         </div>
@@ -710,6 +806,17 @@
 
     <div class="divider" role="separator"></div>
 
+    <!-- PROGETTI -->
+    <section class="section" id="projects">
+        <p class="section-label">Progetti</p>
+        <h2 class="section-title">I miei <span>lavori</span></h2>
+        <div class="cards-grid" id="projects-grid">
+            <div class="projects-loading">Caricamento progetti da GitHub...</div>
+        </div>
+    </section>
+
+    <div class="divider" role="separator"></div>
+
     <!-- CONTATTI -->
     <section class="section" id="contact">
         <p class="section-label">Contatti</p>
@@ -738,6 +845,67 @@
     <footer class="footer">
         <p>&copy; 2026 New Intermedia AI &mdash; Progetto personale no-profit. Tutti i diritti riservati.</p>
     </footer>
+
+    <script>
+    (function() {
+        var grid = document.getElementById('projects-grid');
+        if (!grid) return;
+
+        var EXCLUDE_REPOS = ['newintermediaai.github.io'];
+        var BANNED_WORDS = { 'bitcoin': 'registro pubblico distribuito' };
+
+        var langColors = {
+            'Python': '#3572A5', 'JavaScript': '#f1e05a', 'HTML': '#e34c26',
+            'Shell': '#89e051', 'TypeScript': '#2b7489', 'CSS': '#563d7c',
+            'Java': '#b07219', 'Go': '#00ADD8', 'Rust': '#dea584'
+        };
+
+        fetch('https://api.github.com/users/newintermediaai/repos?sort=updated&per_page=30')
+            .then(function(r) { return r.json(); })
+            .then(function(repos) {
+                var filtered = repos.filter(function(r) {
+                    return r.private === false && EXCLUDE_REPOS.indexOf(r.name) === -1;
+                });
+
+                if (filtered.length === 0) {
+                    grid.innerHTML = '<div class="projects-loading">Nessun progetto trovato.</div>';
+                    return;
+                }
+
+                var html = '';
+                filtered.forEach(function(repo) {
+                    var desc = repo.description || 'Nessuna descrizione.';
+                    Object.keys(BANNED_WORDS).forEach(function(word) {
+                        desc = desc.replace(new RegExp(word, 'gi'), BANNED_WORDS[word]);
+                    });
+                    if (desc.length > 160) desc = desc.substring(0, 157) + '...';
+
+                    var langDot = repo.language
+                        ? '<span class="project-lang"><span class="project-lang-dot" style="background:' + (langColors[repo.language] || 'var(--primary)') + '"></span>' + repo.language + '</span>'
+                        : '';
+
+                    var license = repo.license && repo.license.spdx_id
+                        ? '<span class="project-license">' + repo.license.spdx_id + '</span>'
+                        : '';
+
+                    html += '<div class="project-card">'
+                        + '<h3 class="project-name"><a href="' + repo.html_url + '" target="_blank" rel="noopener noreferrer">' + repo.name + '</a></h3>'
+                        + '<p class="project-desc">' + desc + '</p>'
+                        + '<div class="project-meta">'
+                        + langDot
+                        + license
+                        + '<a class="project-link" href="' + repo.html_url + '" target="_blank" rel="noopener noreferrer">GitHub &rarr;</a>'
+                        + '</div>'
+                        + '</div>';
+                });
+
+                grid.innerHTML = html;
+            })
+            .catch(function() {
+                grid.innerHTML = '<div class="projects-error">Errore nel caricamento dei progetti.</div>';
+            });
+    })();
+    </script>
 
 </body>
 </html>
